@@ -47,6 +47,11 @@ func main() {
 		}
 	}()
 
+	// Инициализация таблиц
+	if err := repository.InitTables(db); err != nil {
+		log.Fatal("failed to initialize tables", zap.Error(err))
+	}
+
 	// Инициализация репозиториев
 	userRepo := repository.NewUserRepository(db)
 	orderRepo := repository.NewOrderRepository(db)
