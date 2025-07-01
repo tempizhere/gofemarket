@@ -86,5 +86,8 @@ func (r *BalanceRepository) GetWithdrawals(ctx context.Context, userID int) ([]m
 		}
 		withdrawals = append(withdrawals, w)
 	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
 	return withdrawals, nil
 }

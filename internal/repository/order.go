@@ -65,6 +65,9 @@ func (r *OrderRepository) GetOrdersByUser(ctx context.Context, userID int) ([]mo
 		}
 		orders = append(orders, order)
 	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
 	return orders, nil
 }
 
@@ -90,6 +93,9 @@ func (r *OrderRepository) GetOrdersByStatus(ctx context.Context, statuses []stri
 			return nil, err
 		}
 		orders = append(orders, order)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
 	}
 	return orders, nil
 }

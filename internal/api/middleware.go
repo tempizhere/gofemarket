@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/tempizhere/gofemarket/internal/model"
 	"github.com/tempizhere/gofemarket/internal/service"
 	"go.uber.org/zap"
 )
@@ -27,14 +28,16 @@ func AuthMiddleware(userService service.UserService, logger *zap.Logger) func(ht
 			}
 
 			if token == "" {
-				http.Error(w, "unauthorized", http.StatusUnauthorized)
+				w.Header().Set("Content-Type", "application/json")
+				http.Error(w, model.ErrMsgInvalidCredentials, http.StatusUnauthorized)
 				return
 			}
 
 			userID, err := userService.ValidateToken(token)
 			if err != nil {
 				logger.Error("invalid token", zap.Error(err))
-				http.Error(w, "unauthorized", http.StatusUnauthorized)
+				w.Header().Set("Content-Type", "application/json")
+				http.Error(w, model.ErrMsgInvalidCredentials, http.StatusUnauthorized)
 				return
 			}
 

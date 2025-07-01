@@ -35,7 +35,7 @@ func (s *userServiceImpl) Register(ctx context.Context, login, password string) 
 		return "", err
 	}
 
-	userID, err := s.repo.CreateUser(ctx, login, string(hashedPassword))
+	userID, err := s.repo.CreateUserWithBalance(ctx, login, string(hashedPassword))
 	if err != nil {
 		return "", err
 	}
