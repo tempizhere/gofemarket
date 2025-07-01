@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 
+	"github.com/tempizhere/gofemarket/internal/api"
 	"github.com/tempizhere/gofemarket/internal/model"
 	"github.com/tempizhere/gofemarket/internal/repository"
 )
@@ -13,7 +14,7 @@ type balanceServiceImpl struct {
 }
 
 // NewBalanceService создает новый BalanceService.
-func NewBalanceService(balanceRepo *repository.BalanceRepository, _ *repository.OrderRepository) BalanceService {
+func NewBalanceService(balanceRepo *repository.BalanceRepository, _ *repository.OrderRepository) api.BalanceService {
 	return &balanceServiceImpl{
 		balanceRepo: balanceRepo,
 	}
@@ -30,15 +31,7 @@ func (s *balanceServiceImpl) Withdraw(ctx context.Context, userID int, orderNumb
 		return model.ErrInvalidOrderFormat
 	}
 
-	balance, err := s.balanceRepo.GetBalance(ctx, userID)
-	if err != nil {
-		return err
-	}
-	if balance.Current < sum {
-		return model.ErrInsufficientFunds
-	}
-
-	return s.balanceRepo.Withdraw(ctx, userID, orderNumber, sum)
+	return s.balanceRepo.WithdrawWithCheck(ctx, userID, orderNumber, sum)
 }
 
 // GetWithdrawals возвращает историю списаний.

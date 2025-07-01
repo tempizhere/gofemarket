@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"log"
 	"net/http"
 	"os"
 	"os/signal"
@@ -20,36 +21,38 @@ import (
 // main инициализирует и запускает сервер.
 func main() {
 	// Инициализация логгера
-	log, err := logger.NewLogger()
+	logg, err := logger.NewLogger()
 	if err != nil {
-		panic("failed to init logger: " + err.Error())
+		log.Fatal("failed to init logger: " + err.Error())
 	}
 	defer func() {
-		if err := log.Sync(); err != nil {
-			log.Error("failed to sync logger", zap.Error(err))
+		if err := logg.Sync(); err != nil {
+			logg.Error("failed to sync logger", zap.Error(err))
 		}
 	}()
+
+	logg.Info("server binary path", zap.String("path", os.Args[0]))
 
 	// Загрузка конфигурации
 	cfg, err := config.Load()
 	if err != nil {
-		log.Fatal("failed to load config", zap.Error(err))
+		logg.Fatal("failed to load config", zap.Error(err))
 	}
 
 	// Инициализация подключения к БД
 	db, err := repository.NewDB(cfg.DatabaseURI)
 	if err != nil {
-		log.Fatal("failed to connect to database", zap.Error(err))
+		logg.Fatal("failed to connect to database", zap.Error(err))
 	}
 	defer func() {
 		if err := db.Close(); err != nil {
-			log.Error("failed to close database", zap.Error(err))
+			logg.Error("failed to close database", zap.Error(err))
 		}
 	}()
 
 	// Инициализация таблиц
 	if err := repository.InitTables(db); err != nil {
-		log.Fatal("failed to initialize tables", zap.Error(err))
+		logg.Fatal("failed to initialize tables", zap.Error(err))
 	}
 
 	// Инициализация репозиториев
@@ -64,7 +67,7 @@ func main() {
 
 	// Настройка маршрутов
 	router := mux.NewRouter()
-	api.SetupRoutes(router, userService, orderService, balanceService, log)
+	api.SetupRoutes(router, userService, orderService, balanceService, logg)
 
 	// Создание HTTP-сервера
 	server := &http.Server{
@@ -79,7 +82,7 @@ func main() {
 	// Запуск сервера и фоновой обработки заказов
 	g, gCtx := errgroup.WithContext(ctx)
 	g.Go(func() error {
-		log.Info("starting server", zap.String("address", cfg.RunAddress))
+		logg.Info("starting server", zap.String("address", cfg.RunAddress))
 		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			return err
 		}
@@ -90,11 +93,11 @@ func main() {
 	})
 	g.Go(func() error {
 		<-gCtx.Done()
-		log.Info("shutting down server")
+		logg.Info("shutting down server")
 		return server.Shutdown(context.Background())
 	})
 
 	if err := g.Wait(); err != nil {
-		log.Fatal("server error", zap.Error(err))
+		logg.Fatal("server error", zap.Error(err))
 	}
 }

@@ -13,15 +13,3 @@ var (
 	ErrOrderNotFound        = errors.New("order not found")
 	ErrTooManyRequests      = errors.New("too many requests")
 )
-
-// Сообщения ошибок для HTTP-ответов.
-const (
-	ErrMsgLoginTaken           = "login already taken"
-	ErrMsgInvalidCredentials   = "invalid login or password"
-	ErrMsgInvalidOrderFormat   = "invalid order format"
-	ErrMsgOrderAlreadyUploaded = "order already uploaded"
-	ErrMsgOrderTakenByAnother  = "order taken by another user"
-	ErrMsgInsufficientFunds    = "insufficient funds"
-	ErrMsgInvalidRequest       = "invalid request format"
-	ErrMsgInternalServer       = "internal server error"
-)
