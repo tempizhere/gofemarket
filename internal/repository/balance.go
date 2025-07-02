@@ -93,7 +93,7 @@ func (r *BalanceRepository) GetWithdrawals(ctx context.Context, userID int) ([]m
 		}
 	}()
 
-	var withdrawals []model.Withdrawal
+	withdrawals := make([]model.Withdrawal, 0)
 	for rows.Next() {
 		var w model.Withdrawal
 		if err := rows.Scan(&w.Order, &w.Sum, &w.ProcessedAt); err != nil {

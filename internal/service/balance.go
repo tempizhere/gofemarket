@@ -5,16 +5,15 @@ import (
 
 	"github.com/tempizhere/gofemarket/internal/api"
 	"github.com/tempizhere/gofemarket/internal/model"
-	"github.com/tempizhere/gofemarket/internal/repository"
 )
 
 // balanceServiceImpl реализует логику баланса.
 type balanceServiceImpl struct {
-	balanceRepo *repository.BalanceRepository
+	balanceRepo api.BalanceRepository
 }
 
 // NewBalanceService создает новый BalanceService.
-func NewBalanceService(balanceRepo *repository.BalanceRepository, _ *repository.OrderRepository) api.BalanceService {
+func NewBalanceService(balanceRepo api.BalanceRepository, _ api.OrderRepository) api.BalanceService {
 	return &balanceServiceImpl{
 		balanceRepo: balanceRepo,
 	}

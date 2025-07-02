@@ -8,19 +8,18 @@ import (
 	"github.com/tempizhere/gofemarket/internal/api"
 	"github.com/tempizhere/gofemarket/internal/client"
 	"github.com/tempizhere/gofemarket/internal/model"
-	"github.com/tempizhere/gofemarket/internal/repository"
 	"golang.org/x/sync/errgroup"
 )
 
 // orderServiceImpl реализует логику заказов.
 type orderServiceImpl struct {
-	repo              *repository.OrderRepository
-	accrualClient     *client.AccrualClient
+	repo              api.OrderRepository
+	accrualClient     api.AccrualClient
 	accrualSystemAddr string
 }
 
 // NewOrderService создает новый OrderService.
-func NewOrderService(repo *repository.OrderRepository, accrualSystemAddr string) api.OrderService {
+func NewOrderService(repo api.OrderRepository, accrualSystemAddr string) api.OrderService {
 	return &orderServiceImpl{
 		repo:              repo,
 		accrualClient:     client.NewAccrualClient(accrualSystemAddr),

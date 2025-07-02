@@ -57,7 +57,7 @@ func (r *OrderRepository) GetOrdersByUser(ctx context.Context, userID int) ([]mo
 		}
 	}()
 
-	var orders []model.Order
+	orders := make([]model.Order, 0)
 	for rows.Next() {
 		var order model.Order
 		if err := rows.Scan(&order.ID, &order.Number, &order.Status, &order.Accrual, &order.UploadedAt); err != nil {
@@ -86,7 +86,7 @@ func (r *OrderRepository) GetOrdersByStatus(ctx context.Context, statuses []stri
 		}
 	}()
 
-	var orders []model.Order
+	orders := make([]model.Order, 0)
 	for rows.Next() {
 		var order model.Order
 		if err := rows.Scan(&order.ID, &order.Number, &order.UserID, &order.Status, &order.Accrual, &order.UploadedAt); err != nil {
