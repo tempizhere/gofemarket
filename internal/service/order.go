@@ -88,8 +88,14 @@ func (s *orderServiceImpl) processOrder(ctx context.Context, order *model.Order)
 			return nil
 		}
 		if err == model.ErrTooManyRequests {
-			time.Sleep(retryAfter)
-			return err // Будет обработано в ProcessOrders
+			timer := time.NewTimer(retryAfter)
+			defer timer.Stop()
+			select {
+			case <-ctx.Done():
+				return ctx.Err()
+			case <-timer.C:
+				return err
+			}
 		}
 		return nil
 	}

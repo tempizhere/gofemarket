@@ -10,7 +10,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/tempizhere/gofemarket/internal/model"
 	"github.com/tempizhere/gofemarket/internal/repository/mocks"
-
 )
 
 // TestBalanceService_GetBalance проверяет получение баланса пользователя через сервис.
