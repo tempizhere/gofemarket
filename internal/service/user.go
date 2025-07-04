@@ -5,19 +5,19 @@ import (
 	"time"
 
 	"github.com/dgrijalva/jwt-go"
+	"github.com/tempizhere/gofemarket/internal/api"
 	"github.com/tempizhere/gofemarket/internal/model"
-	"github.com/tempizhere/gofemarket/internal/repository"
 	"golang.org/x/crypto/bcrypt"
 )
 
 // userServiceImpl реализует логику пользователей.
 type userServiceImpl struct {
-	repo      *repository.UserRepository
+	repo      api.UserRepository
 	jwtSecret string
 }
 
 // NewUserService создает новый UserService.
-func NewUserService(repo *repository.UserRepository) UserService {
+func NewUserService(repo api.UserRepository) api.UserService {
 	return &userServiceImpl{
 		repo:      repo,
 		jwtSecret: "secret_key", // В реальном проекте использовать переменную окружения

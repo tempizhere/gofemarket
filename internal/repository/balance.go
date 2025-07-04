@@ -32,8 +32,8 @@ func (r *BalanceRepository) GetBalance(ctx context.Context, userID int) (model.B
 	return balance, err
 }
 
-// Withdraw выполняет списание баллов.
-func (r *BalanceRepository) Withdraw(ctx context.Context, userID int, orderNumber string, sum float64) error {
+// WithdrawWithCheck выполняет списание баллов с проверкой в транзакции.
+func (r *BalanceRepository) WithdrawWithCheck(ctx context.Context, userID int, orderNumber string, sum float64) error {
 	tx, err := r.db.BeginTx(ctx, nil)
 	if err != nil {
 		return err
@@ -43,6 +43,21 @@ func (r *BalanceRepository) Withdraw(ctx context.Context, userID int, orderNumbe
 			zap.L().Error("failed to rollback transaction", zap.Error(err))
 		}
 	}()
+
+	var current float64
+	err = tx.QueryRowContext(ctx,
+		"SELECT current FROM balances WHERE user_id = $1 FOR UPDATE",
+		userID,
+	).Scan(&current)
+	if err == sql.ErrNoRows {
+		return model.ErrInsufficientFunds
+	}
+	if err != nil {
+		return err
+	}
+	if current < sum {
+		return model.ErrInsufficientFunds
+	}
 
 	_, err = tx.ExecContext(ctx,
 		"UPDATE balances SET current = current - $1, withdrawn = withdrawn + $1 WHERE user_id = $2",
@@ -78,7 +93,7 @@ func (r *BalanceRepository) GetWithdrawals(ctx context.Context, userID int) ([]m
 		}
 	}()
 
-	var withdrawals []model.Withdrawal
+	withdrawals := make([]model.Withdrawal, 0)
 	for rows.Next() {
 		var w model.Withdrawal
 		if err := rows.Scan(&w.Order, &w.Sum, &w.ProcessedAt); err != nil {

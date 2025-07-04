@@ -39,7 +39,8 @@ func Load() (*Config, error) {
 			config.RunAddress = "localhost:8080"
 		}
 		if config.DatabaseURI == "" {
-			config.DatabaseURI = "postgresql://postgres:postgres@localhost/praktikum?sslmode=disable"
+			loadErr = os.ErrNotExist
+			return
 		}
 		if config.AccrualSystemAddress == "" {
 			config.AccrualSystemAddress = "http://localhost:8000"

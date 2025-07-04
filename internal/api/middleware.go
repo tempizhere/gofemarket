@@ -5,8 +5,6 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/tempizhere/gofemarket/internal/model"
-	"github.com/tempizhere/gofemarket/internal/service"
 	"go.uber.org/zap"
 )
 
@@ -17,7 +15,7 @@ type contextKey string
 const userIDKey contextKey = "userID"
 
 // AuthMiddleware проверяет авторизацию пользователя.
-func AuthMiddleware(userService service.UserService, logger *zap.Logger) func(http.Handler) http.Handler {
+func AuthMiddleware(userService UserService, logger *zap.Logger) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			token := r.Header.Get("Authorization")
@@ -29,7 +27,7 @@ func AuthMiddleware(userService service.UserService, logger *zap.Logger) func(ht
 
 			if token == "" {
 				w.Header().Set("Content-Type", "application/json")
-				http.Error(w, model.ErrMsgInvalidCredentials, http.StatusUnauthorized)
+				http.Error(w, http.StatusText(http.StatusUnauthorized), http.StatusUnauthorized)
 				return
 			}
 
@@ -37,7 +35,7 @@ func AuthMiddleware(userService service.UserService, logger *zap.Logger) func(ht
 			if err != nil {
 				logger.Error("invalid token", zap.Error(err))
 				w.Header().Set("Content-Type", "application/json")
-				http.Error(w, model.ErrMsgInvalidCredentials, http.StatusUnauthorized)
+				http.Error(w, http.StatusText(http.StatusUnauthorized), http.StatusUnauthorized)
 				return
 			}
 

@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/tempizhere/gofemarket/internal/model"
@@ -31,15 +32,15 @@ func NewAccrualClient(baseURL string) *AccrualClient {
 }
 
 // GetAccrual получает информацию о начислении.
-func (c *AccrualClient) GetAccrual(ctx context.Context, orderNumber string) (model.Order, error) {
+func (c *AccrualClient) GetAccrual(ctx context.Context, orderNumber string) (model.Order, time.Duration, error) {
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, c.baseURL+"/api/orders/"+orderNumber, nil)
 	if err != nil {
-		return model.Order{}, err
+		return model.Order{}, 0, err
 	}
 
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
-		return model.Order{}, err
+		return model.Order{}, 0, err
 	}
 	defer func() { _ = resp.Body.Close() }()
 
@@ -51,18 +52,24 @@ func (c *AccrualClient) GetAccrual(ctx context.Context, orderNumber string) (mod
 			Accrual float64 `json:"accrual"`
 		}
 		if err := json.NewDecoder(resp.Body).Decode(&accrual); err != nil {
-			return model.Order{}, err
+			return model.Order{}, 0, err
 		}
 		return model.Order{
 			Number:  accrual.Order,
 			Status:  accrual.Status,
 			Accrual: accrual.Accrual,
-		}, nil
+		}, 0, nil
 	case http.StatusNoContent:
-		return model.Order{}, model.ErrOrderNotFound
+		return model.Order{}, 0, model.ErrOrderNotFound
 	case http.StatusTooManyRequests:
-		return model.Order{}, model.ErrTooManyRequests
+		retryAfter := 60 * time.Second // Значение по умолчанию
+		if retryHeader := resp.Header.Get("Retry-After"); retryHeader != "" {
+			if seconds, err := strconv.Atoi(retryHeader); err == nil {
+				retryAfter = time.Duration(seconds) * time.Second
+			}
+		}
+		return model.Order{}, retryAfter, model.ErrTooManyRequests
 	default:
-		return model.Order{}, model.ErrOrderNotFound
+		return model.Order{}, 0, model.ErrOrderNotFound
 	}
 }

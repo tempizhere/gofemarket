@@ -3,40 +3,32 @@ package service
 import (
 	"context"
 	"strconv"
-	"sync"
 	"time"
 
+	"github.com/tempizhere/gofemarket/internal/api"
 	"github.com/tempizhere/gofemarket/internal/client"
 	"github.com/tempizhere/gofemarket/internal/model"
-	"github.com/tempizhere/gofemarket/internal/repository"
+	"golang.org/x/sync/errgroup"
 )
-
-var stringPool = sync.Pool{
-	New: func() interface{} {
-		s := ""
-		return &s
-	},
-}
 
 // orderServiceImpl реализует логику заказов.
 type orderServiceImpl struct {
-	repo              *repository.OrderRepository
-	accrualClient     *client.AccrualClient
-	accrualSystemAddr *string
+	repo              api.OrderRepository
+	accrualClient     api.AccrualClient
+	accrualSystemAddr string
 }
 
 // NewOrderService создает новый OrderService.
-func NewOrderService(repo *repository.OrderRepository, accrualSystemAddr string) OrderService {
+func NewOrderService(repo api.OrderRepository, accrualSystemAddr string) api.OrderService {
 	return &orderServiceImpl{
 		repo:              repo,
 		accrualClient:     client.NewAccrualClient(accrualSystemAddr),
-		accrualSystemAddr: stringPool.Get().(*string),
+		accrualSystemAddr: accrualSystemAddr,
 	}
 }
 
 // UploadOrder загружает номер заказа.
 func (s *orderServiceImpl) UploadOrder(ctx context.Context, userID int, orderNumber string) error {
-	defer stringPool.Put(s.accrualSystemAddr)
 	if !isValidLuhn(orderNumber) {
 		return model.ErrInvalidOrderFormat
 	}
@@ -71,30 +63,47 @@ func (s *orderServiceImpl) ProcessOrders(ctx context.Context) error {
 			if err != nil {
 				return err
 			}
+
+			g, gCtx := errgroup.WithContext(ctx)
 			for _, order := range orders {
-				s.processOrder(ctx, &order)
+				o := order
+				g.Go(func() error {
+					return s.processOrder(gCtx, &o)
+				})
+			}
+			if err := g.Wait(); err != nil {
+				if err == model.ErrTooManyRequests {
+					return err // Останавливаем всех воркеров при 429
+				}
 			}
 		}
 	}
 }
 
 // processOrder обрабатывает один заказ.
-func (s *orderServiceImpl) processOrder(ctx context.Context, order *model.Order) {
-	accrual, err := s.accrualClient.GetAccrual(ctx, order.Number)
+func (s *orderServiceImpl) processOrder(ctx context.Context, order *model.Order) error {
+	accrual, retryAfter, err := s.accrualClient.GetAccrual(ctx, order.Number)
 	if err != nil {
 		if err == model.ErrOrderNotFound {
-			return
+			return nil
 		}
 		if err == model.ErrTooManyRequests {
-			time.Sleep(time.Second * 60)
-			return
+			timer := time.NewTimer(retryAfter)
+			defer timer.Stop()
+			select {
+			case <-ctx.Done():
+				return ctx.Err()
+			case <-timer.C:
+				return err
+			}
 		}
-		return
+		return nil
 	}
 
 	if accrual.Status == "INVALID" || accrual.Status == "PROCESSED" {
-		_ = s.repo.UpdateOrderAndBalance(ctx, order.Number, accrual.Status, accrual.Accrual, order.UserID)
+		return s.repo.UpdateOrderAndBalance(ctx, order.Number, accrual.Status, accrual.Accrual, order.UserID)
 	}
+	return nil
 }
 
 // isValidLuhn проверяет номер заказа по алгоритму Луна.
